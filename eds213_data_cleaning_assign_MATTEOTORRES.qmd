@@ -1,0 +1,99 @@
+---
+title: "Data Cleaning"
+author: "Matteo Torres"
+date: "April 16, 2025"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Load packages
+```{r}
+library(here)
+library(tidyverse)
+```
+
+## Read data
+```{r}
+snow_survey <- read_csv(here("data", "raw", "ASDN_Snow_survey.csv"))
+```
+
+## Clean data
+```{r}
+# Clean Snow_cover
+snow_cover_clean <- snow_survey %>%
+  # Assign NAs to non-numeric values
+  mutate(Snow_cover = ifelse(Snow_cover %in% c("-", ".", "n/a", "unk"), NA, Snow_cover)) %>%
+  # Assign a 0 to values less than 1
+  mutate(Snow_cover = ifelse(Snow_cover == "<1", 0, Snow_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Snow_cover = as.numeric(Snow_cover)) %>%
+  # Assign NAs to values greater than 100
+  mutate(Snow_cover = ifelse(Snow_cover > 100, NA, Snow_cover))
+
+# Save as a CSV in the processed data folder
+write_csv(snow_cover_clean, here("data", "processed", "snow_cover.csv"))
+```
+
+```{r}
+# Clean Water_clean
+water_cover_clean <- snow_survey %>%
+  # Assign NAs to non-numeric values
+  mutate(Water_cover = ifelse(Water_cover %in% c("-", ".", "n/a", "unk"), NA, Water_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Water_cover = as.numeric(Water_cover)) %>%
+  # Assign NAs to values greater than 100
+  mutate(Water_cover = ifelse(Water_cover > 100, NA, Water_cover))
+
+# Save as a CSV in the processed data folder
+write_csv(water_cover_clean, here("data", "processed", "water_cover.csv"))
+```
+
+```{r}
+# Clean Land_cover
+land_cover_clean <- snow_survey %>%
+  # Assign NAs to non-numeric values
+  mutate(Land_cover = ifelse(Land_cover %in% c("-", ".", "n/a", "unk"), NA, Land_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Land_cover = as.numeric(Land_cover)) %>%
+  # Assign NAs to values less than 0
+  mutate(Land_cover = ifelse(Land_cover < 0, NA, Land_cover))
+
+# Save as a CSV in the processed data folder
+write_csv(land_cover_clean, here("data", "processed", "land_cover.csv"))
+```
+
+```{r}
+# Clean Total_cover (combine all three)
+snow_survey_clean <- snow_survey %>%
+  # Assign NAs to non-numeric values
+  mutate(Snow_cover = ifelse(Snow_cover %in% c("-", ".", "n/a", "unk"), NA, Snow_cover)) %>%
+  # Assign a 0 to values less than 1
+  mutate(Snow_cover = ifelse(Snow_cover == "<1", 0, Snow_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Snow_cover = as.numeric(Snow_cover)) %>%
+  # Assign NAs to values greater than 100
+  mutate(Snow_cover = ifelse(Snow_cover > 100, NA, Snow_cover)) %>%
+  # Assign NAs to non-numeric values
+  mutate(Water_cover = ifelse(Water_cover %in% c("-", ".", "n/a", "unk"), NA, Water_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Water_cover = as.numeric(Water_cover)) %>%
+  # Assign NAs to values greater than 100
+  mutate(Water_cover = ifelse(Water_cover > 100, NA, Water_cover)) %>%
+  # Assign NAs to non-numeric values
+  mutate(Land_cover = ifelse(Land_cover %in% c("-", ".", "n/a", "unk"), NA, Land_cover)) %>%
+  # Convert column to a numeric data type
+  mutate(Land_cover = as.numeric(Land_cover)) %>%
+  # Assign NAs to values less than 0
+  mutate(Land_cover = ifelse(Land_cover < 0, NA, Land_cover)) %>%
+  # Assign NAs to totals that do not add up to 100
+  mutate(Total_cover = ifelse(Snow_cover + Water_cover + Land_cover != 100, NA, Snow_cover + Water_cover + Land_cover))
+
+# Save as a CSV in the processed data folder
+write_csv(snow_survey_clean, here("data", "processed", "all_cover_fixed_MATTEOTORRES.csv"))
+```
+
+## Explanations
+When approaching this assignment, I initially chose to data wrangle all three columns separately, following the steps we practiced in class. I found it manageable to replicate the process, starting with `glimpse()` to inspect the variables’ data types, then using `count()` to identify the unique observations for each variable of interest. I also used `filter(is.na(as.numeric()))` to isolate any values that weren’t numeric and should be treated as NAs or converted to 0 (for cases <1). After working through each cover variable this way, I made sure to convert them to numeric values before removing any extreme outliers—specifically values greater than 100 or less than 0. I chose to remove these values because, in this context, percentages should logically fall within the 0–100% range.
+
+When approaching the total count column specifically, I chose to sum all the cleaned cover columns and assign NA values to any rows where the total did not equal 100. I made this decision based on the metadata, which emphasized that the total count should "always" add up to 100. I inferred that this approach would be useful for filtering out surveys that were either conducted improperly or logged incorrectly, helping ensure that my analysis is based on reliable and standardized data.
